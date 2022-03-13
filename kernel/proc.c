@@ -637,6 +637,22 @@ kill(int pid)
   return -1;
 }
 
+// get the num of process whose state is not used 
+int
+unusenum()
+{
+  struct proc *p;
+  int num = 0;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED){
+      num++;
+    }
+    release(&p->lock);
+  }
+  return num;
+}
+
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
