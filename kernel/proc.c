@@ -29,17 +29,18 @@ procinit(void)
   
   initlock(&pid_lock, "nextpid");
   for(p = proc; p < &proc[NPROC]; p++) {
-      initlock(&p->lock, "proc");
+    initlock(&p->lock, "proc");
 
-      // Allocate a page for the process's kernel stack.
-      // Map it high in memory, followed by an invalid
-      // guard page.
-      char *pa = kalloc();
-      if(pa == 0)
-        panic("kalloc");
-      uint64 va = KSTACK((int) (p - proc));
-      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-      p->kstack = va;
+    // Allocate a page for the process's kernel stack.
+    // Map it high in memory, followed by an invalid
+    // guard page.
+    char *pa = kalloc();   // 物理地址
+    p->pa_kstack = (uint64) pa;
+    if(pa == 0)
+      panic("kalloc");
+    uint64 va = KSTACK((int) (p - proc));   //虚拟地址
+    kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+    p->kstack = va;
   }
   kvminithart();
 }
@@ -92,11 +93,18 @@ allocpid() {
 static struct proc*
 allocproc(void)
 {
+
   struct proc *p;
 
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
+
+      // 将进程的 kernel stack 页也添加到内核页表中。
+
+      p->proc_kernel_pagetable = prockvminit();
+      proc_kvmmap(p->proc_kernel_pagetable, p->kstack, p->pa_kstack, PGSIZE, PTE_R | PTE_W);
+
       goto found;
     } else {
       release(&p->lock);
@@ -106,6 +114,14 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+
+ // char *pa = kalloc();   // 物理地址
+ // p->pa_kstack = (uint64) pa;
+ // if(pa == 0)
+ //   panic("kalloc");
+ // uint64 va = KSTACK((int) (p - proc));   //虚拟地址
+ // proc_kvmmap(p->proc_kernel_pagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+ // p->kstack = va;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -141,6 +157,10 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+  if(p->proc_kernel_pagetable)
+    proc_free_kernelpagetable(p->proc_kernel_pagetable, p->kstack);
+   
+  p->proc_kernel_pagetable = 0;
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -194,6 +214,12 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
 }
+
+void proc_free_kernelpagetable(pagetable_t pagetable, uint64 va)
+{
+  uvmunmap_kernel_pagetable(pagetable, va);
+}
+  
 
 // a user program that calls exec("/init")
 // od -t xC initcode
@@ -273,6 +299,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+
   np->sz = p->sz;
 
   np->parent = p;
@@ -475,7 +502,13 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+        
+        w_satp(MAKE_SATP(p->proc_kernel_pagetable));
+        sfence_vma();
         swtch(&c->context, &p->context);
+         
+
+        kvminithart();  // 没有这个就报错了
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -486,6 +519,7 @@ scheduler(void)
       release(&p->lock);
     }
     if(found == 0) {
+
       intr_on();
       asm volatile("wfi");
     }
