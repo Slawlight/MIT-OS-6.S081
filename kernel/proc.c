@@ -34,15 +34,15 @@ procinit(void)
     // Allocate a page for the process's kernel stack.
     // Map it high in memory, followed by an invalid
     // guard page.
-    char *pa = kalloc();   // 物理地址
-    p->pa_kstack = (uint64) pa;
-    if(pa == 0)
-      panic("kalloc");
-    uint64 va = KSTACK((int) (p - proc));   //虚拟地址
-    kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-    p->kstack = va;
+  //  char *pa = kalloc();   // 物理地址
+  //  p->pa_kstack = (uint64) pa;
+  //  if(pa == 0)
+  //    panic("kalloc");
+  //  uint64 va = KSTACK((int) (p - proc));   //虚拟地址
+  //  kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+  //  p->kstack = va;
   }
-  kvminithart();
+ // kvminithart();
 }
 
 // Must be called with interrupts disabled,
@@ -102,8 +102,8 @@ allocproc(void)
 
       // 将进程的 kernel stack 页也添加到内核页表中。
 
-      p->proc_kernel_pagetable = prockvminit();
-      proc_kvmmap(p->proc_kernel_pagetable, p->kstack, p->pa_kstack, PGSIZE, PTE_R | PTE_W);
+   //   p->proc_kernel_pagetable = prockvminit();
+   //   proc_kvmmap(p->proc_kernel_pagetable, p->kstack, p->pa_kstack, PGSIZE, PTE_R | PTE_W);
 
       goto found;
     } else {
@@ -115,13 +115,14 @@ allocproc(void)
 found:
   p->pid = allocpid();
 
- // char *pa = kalloc();   // 物理地址
+  char *pa = kalloc();   // 物理地址
  // p->pa_kstack = (uint64) pa;
- // if(pa == 0)
- //   panic("kalloc");
- // uint64 va = KSTACK((int) (p - proc));   //虚拟地址
- // proc_kvmmap(p->proc_kernel_pagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
- // p->kstack = va;
+  if(pa == 0)
+    panic("kalloc");
+  p->proc_kernel_pagetable = prockvminit();
+  uint64 va = KSTACK((int) (p - proc));   //虚拟地址
+  proc_kvmmap(p->proc_kernel_pagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+  p->kstack = va;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -158,6 +159,7 @@ freeproc(struct proc *p)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   if(p->proc_kernel_pagetable)
+
     proc_free_kernelpagetable(p->proc_kernel_pagetable, p->kstack);
    
   p->proc_kernel_pagetable = 0;
@@ -506,9 +508,9 @@ scheduler(void)
         w_satp(MAKE_SATP(p->proc_kernel_pagetable));
         sfence_vma();
         swtch(&c->context, &p->context);
-         
 
-        kvminithart();  // 没有这个就报错了
+
+         kvminithart();  //没有这个就报错了
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -519,7 +521,7 @@ scheduler(void)
       release(&p->lock);
     }
     if(found == 0) {
-
+    //  kvminithart();  
       intr_on();
       asm volatile("wfi");
     }

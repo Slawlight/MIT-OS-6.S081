@@ -98,7 +98,7 @@ struct proc {
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)
-  uint64 pa_kstack;             // physical address of kernel stack
+ // uint64 pa_kstack;             // physical address of kernel stack
   pagetable_t pagetable;       // User page table
   pagetable_t proc_kernel_pagetable;   // process kernel page table
   struct trapframe *trapframe; // data page for trampoline.S

@@ -181,7 +181,7 @@ kvmpa(uint64 va)
   pte_t *pte;
   uint64 pa;
   
-  pte = walk(kernel_pagetable, va, 0);
+  pte = walk(myproc()->proc_kernel_pagetable, va, 0);
   if(pte == 0)
     panic("kvmpa");
   if((*pte & PTE_V) == 0)
@@ -338,6 +338,7 @@ freewalk(pagetable_t pagetable)
   kfree((void*)pagetable);
 }
 
+
 // Free user memory pages,
 // then free page-table pages.
 void
@@ -397,6 +398,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
   *pte &= ~PTE_U;
 }
 
+
 void
 uvmunmap_kernel_pagetable(pagetable_t pagetable, uint64 va)
 {
@@ -407,7 +409,7 @@ uvmunmap_kernel_pagetable(pagetable_t pagetable, uint64 va)
   uvmunmap(pagetable, KERNBASE, PGROUNDUP((uint64)etext-KERNBASE)/PGSIZE, 0);
   uvmunmap(pagetable, (uint64)etext, PGROUNDUP(PHYSTOP-(uint64)etext)/PGSIZE, 0);
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, va, 1, 0);
+  uvmunmap(pagetable, va, 1, 1);
   uvmfree(pagetable, 0);
 }
 
