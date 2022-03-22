@@ -75,7 +75,7 @@ exec(char *path, char **argv)
   sp = sz;
   stackbase = sp - PGSIZE;
 
-  proc_uvmcopy(pagetable, p->proc_kernel_pagetable, sz);
+  proc_uvmcopy(pagetable, p->proc_kernel_pagetable, 0, sz);
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {

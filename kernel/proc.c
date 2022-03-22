@@ -247,7 +247,7 @@ userinit(void)
 
   p->sz = PGSIZE;
 
-  proc_uvmcopy(p->pagetable, p->proc_kernel_pagetable, p->sz);
+  proc_uvmcopy(p->pagetable, p->proc_kernel_pagetable, 0, p->sz);
 
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
@@ -266,22 +266,26 @@ userinit(void)
 int
 growproc(int n)
 {
-  uint sz;
+  uint sz, old_sz;
   struct proc *p = myproc();
   sz = p->sz;
   if(n + sz >= PLIC){
     return -1;
   }
   if(n > 0){
+    old_sz = sz;
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
     }
+
+    // 这里如果从零开始复制，太慢了
+    proc_uvmcopy(p->pagetable, p->proc_kernel_pagetable, old_sz, sz);
+
   } else if(n < 0){
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
 
-  proc_uvmcopy(p->pagetable, p->proc_kernel_pagetable, sz);
-
+  
   p->sz = sz;
   return 0;
 }
@@ -308,7 +312,7 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
-  if(proc_uvmcopy(p->pagetable, np->proc_kernel_pagetable, p->sz) < 0){
+  if(proc_uvmcopy(np->pagetable, np->proc_kernel_pagetable, 0, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;

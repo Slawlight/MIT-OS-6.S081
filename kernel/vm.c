@@ -414,22 +414,19 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 }
 
 int 
-proc_uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+proc_uvmcopy(pagetable_t old, pagetable_t new, uint64 oldsz, uint64 sz)
 {
   pte_t *pte, *new_pte;
-  uint64 pa, i;
-  uint flags;
+  uint64 i;
 
-  for(i = 0; i < sz; i += PGSIZE){
+  for(i = oldsz; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("proc_uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("proc_uvmcopy: page not present");
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
 
     new_pte = walk(new, i, 1);
-    *new_pte = PA2PTE(pa) | (flags & (~PTE_U)) | PTE_V;
+    *new_pte = *pte & (~PTE_U);
 
   }
   return 0;
@@ -480,7 +477,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 int
 copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 {
-  
+  /*
   uint64 n, va0, pa0;
 
   while(len > 0){
@@ -498,8 +495,8 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
     srcva = va0 + PGSIZE;
   }
   return 0;
-  
-  //return copyin_new(pagetable, dst, srcva, len);
+  */
+  return copyin_new(pagetable, dst, srcva, len);
 }
 
 // Copy a null-terminated string from user to kernel.
@@ -510,7 +507,7 @@ int
 copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 {
 
-  
+  /*
   uint64 n, va0, pa0;
   int got_null = 0;
 
@@ -546,12 +543,9 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
   
-  
-  //return copyinstr_new(pagetable, dst, srcva, max);
+  */
+  return copyinstr_new(pagetable, dst, srcva, max);
 }
-
-
-
 
 void  vmprint(pagetable_t pagetable, int level)
 {

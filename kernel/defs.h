@@ -187,7 +187,7 @@ int             copyinstr(pagetable_t, char *, uint64, uint64);
 void            uvmunmap_kernel_pagetable(pagetable_t, uint64);
 void            proc_kvmmap(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t     prockvminit();
-int             proc_uvmcopy(pagetable_t, pagetable_t, uint64);
+int             proc_uvmcopy(pagetable_t, pagetable_t, uint64, uint64);
 void            proc_freewalk(pagetable_t);
 
 // plic.c
