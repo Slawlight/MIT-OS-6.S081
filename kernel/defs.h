@@ -189,6 +189,7 @@ void            proc_kvmmap(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t     prockvminit();
 int             proc_uvmcopy(pagetable_t, pagetable_t, uint64, uint64);
 void            proc_freewalk(pagetable_t);
+void            vmprint(pagetable_t , int );
 
 // plic.c
 void            plicinit(void);
