@@ -132,3 +132,19 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+void
+backtrace(void)
+{
+  uint64 cur_fp = r_fp();
+  uint64 end_fp = PGROUNDUP(cur_fp);
+  while(cur_fp < end_fp){
+    printf("%p\n", *((uint64 *)cur_fp-1));
+    cur_fp = *((uint64 *)cur_fp - 2);    //注意这里不能-16，指针会自动转换，-1就是-8
+
+  }
+  
+}
+
+
+
