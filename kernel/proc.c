@@ -267,6 +267,7 @@ fork(void)
     return -1;
   }
 
+  //这里，父亲的可能调用了sbrk增加内存，但还没做映射
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
